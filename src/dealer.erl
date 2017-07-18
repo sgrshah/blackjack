@@ -1,6 +1,8 @@
 -module(dealer).
 -export([deal/1]).
 
+% This module ecapsulates initial game setup from dealer.
+
 % Deal 2 hands given a Shoe.
 deal(Shoe) ->
   deal(Shoe, {player, [], dealer, []}).
