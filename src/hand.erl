@@ -7,7 +7,6 @@ sum(Hand) ->
 
 % Base case. Return accumulator when entire Hand has been counted.
 sum([], Count) ->
-  io:format("Sum: ~p~n", [Count]),
   Count;
 
 % Handle Aces, which can be 1 or 11.
