@@ -35,7 +35,7 @@ decide(Shoe, dealer, {player, PlayerHand, dealer, DealerHand}) ->
 
 hit(Shoe, player, {player, PlayerHand, dealer, DealerHand}) ->
   CardNumInShoe = length(PlayerHand) + length(DealerHand) + 1,
-  NewGameState = {player, PlayerHand ++ [shoe:deal(Shoe, CardNumInShoe)], dealer, DealerHand}
+  NewGameState = {player, PlayerHand ++ [shoe:deal(Shoe, CardNumInShoe)], dealer, DealerHand},
   decide(Shoe, player, NewGameState);
 hit(Shoe, dealer, {player, PlayerHand, dealer, DealerHand}) ->
   CardNumInShoe = length(PlayerHand) + length(DealerHand) + 1,

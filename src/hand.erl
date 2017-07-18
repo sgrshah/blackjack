@@ -14,7 +14,7 @@ sum([{1,11}|T], Count) ->
   SumWithEleven = sum(T, Count + 11),
   if
     SumWithEleven > 21 -> sum(T, Count + 1);
-    true -> SumWithEleven
+    SumWithEleven =< 21 -> SumWithEleven
   end;
 
 % Add Head to Accumulator
