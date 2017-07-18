@@ -1,36 +1,18 @@
 -module(game).
--export([play/0, complete_hand/3]).
+-export([play/0, play/3]).
 
 % This module encapsulates all high level game logic
 
 play() ->
   Shoe = shoe:create({decks, 1}),
   io:format("~p~n", [Shoe]),
-  Result = deal(Shoe),
+  InitialHands = dealer:deal(Shoe),
+  Result = play(Shoe, player, InitialHands),
   io:format("Result~p~n", [Result]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-deal(Shoe) ->
-  deal(Shoe, []).
-
-deal(Shoe, []) ->
-  deal(Shoe, {player, [], dealer, []});
-
-deal(Shoe, {player, PlayerHand, dealer, DealerHand}) when (length(PlayerHand) == 2) and (length(DealerHand) == 2) ->
-  complete_hand(Shoe, player, {player, PlayerHand, dealer, DealerHand});
-
-deal(Shoe, {player, PlayerHand, dealer, DealerHand}) when (length(PlayerHand)) =< (length(DealerHand)) ->
-  CardNumInShoe = length(PlayerHand) + length(DealerHand) + 1,
-  deal(Shoe, {player, PlayerHand ++ [shoe:deal(Shoe, CardNumInShoe)], dealer, DealerHand});
-
-deal(Shoe, {player, PlayerHand, dealer, DealerHand}) when (length(PlayerHand)) > (length(DealerHand)) ->
-  CardNumInShoe = length(PlayerHand) + length(DealerHand) + 1,
-  deal(Shoe, {player, PlayerHand, dealer, DealerHand ++ [shoe:deal(Shoe, CardNumInShoe)]}).
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-complete_hand(Shoe, player, {player, PlayerHand, dealer, DealerHand}) ->
+play(Shoe, player, {player, PlayerHand, dealer, DealerHand}) ->
   PlayerCount = hand:sum(PlayerHand),
   io:format("PlayerCount~p~n", [PlayerCount]),
 
@@ -43,7 +25,7 @@ complete_hand(Shoe, player, {player, PlayerHand, dealer, DealerHand}) ->
       actions:decide(Shoe, player, {player, PlayerHand, dealer, DealerHand})
   end;
 
-complete_hand(Shoe, dealer, {player, PlayerHand, dealer, DealerHand}) ->
+play(Shoe, dealer, {player, PlayerHand, dealer, DealerHand}) ->
   io:format("trying to complete dealer's hand~n"),
 
   DealerCount = hand:sum(DealerHand),

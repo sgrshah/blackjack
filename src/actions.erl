@@ -13,7 +13,7 @@ decide(Shoe, player, {player, PlayerHand, dealer, DealerHand}) ->
       {player, PlayerHand, dealer, DealerHand};
     (PlayerCount >= 17) and (PlayerCount =< 21) ->
       io:format("player decides to stay~n"),
-      game:complete_hand(Shoe, dealer, {player, PlayerHand, dealer, DealerHand})
+      game:play(Shoe, dealer, {player, PlayerHand, dealer, DealerHand})
   end;
 
 decide(Shoe, dealer, {player, PlayerHand, dealer, DealerHand}) ->
@@ -34,9 +34,10 @@ decide(Shoe, dealer, {player, PlayerHand, dealer, DealerHand}) ->
 hit(Shoe, player, {player, PlayerHand, dealer, DealerHand}) ->
   io:format("player hit~n"),
   CardNumInShoe = length(PlayerHand) + length(DealerHand) + 1,
-  decide(Shoe, player, {player, PlayerHand ++ [shoe:deal(Shoe, CardNumInShoe)], dealer,
-                               DealerHand});
+  NewGameState = {player, PlayerHand ++ [shoe:deal(Shoe, CardNumInShoe)], dealer, DealerHand}
+  decide(Shoe, player, NewGameState);
 hit(Shoe, dealer, {player, PlayerHand, dealer, DealerHand}) ->
   io:format("dealer hit~n"),
   CardNumInShoe = length(PlayerHand) + length(DealerHand) + 1,
-  decide(Shoe, dealer, {player, PlayerHand, dealer, DealerHand ++ [shoe:deal(Shoe, CardNumInShoe)]}).
+  NewGameState = {player, PlayerHand, dealer, DealerHand ++ [shoe:deal(Shoe, CardNumInShoe)]},
+  decide(Shoe, dealer, NewGameState).
