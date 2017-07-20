@@ -24,7 +24,7 @@ decide(Shoe, dealer, {player, PlayerHand, dealer, DealerHand}) ->
   if
     DealerCount < 17 ->
       io:format("dealer decides to hit~n"),
-      hit(Shoe, dealer, {player, DealerHand, dealer, DealerHand});
+      hit(Shoe, dealer, {player, PlayerHand, dealer, DealerHand});
     DealerCount > 21 ->
       io:format("dealer busts~n"),
       {player, PlayerHand, dealer, DealerHand};
