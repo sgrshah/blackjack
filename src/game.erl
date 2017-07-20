@@ -32,7 +32,7 @@ play(Shoe, dealer, {player, PlayerHand, dealer, DealerHand}) ->
   if
     DealerCount == 21 ->
       io:format("dealer has blackjack~n"),
-      {player, DealerHand, dealer, DealerHand};
+      {player, PlayerHand, dealer, DealerHand};
     DealerCount < 21 ->
       actions:decide(Shoe, dealer, {player, PlayerHand, dealer, DealerHand})
   end.
