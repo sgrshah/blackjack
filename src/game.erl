@@ -1,5 +1,5 @@
 -module(game).
--export([play/1, play/3, play/4]).
+-export([play/0]).
 
 % This module encapsulates all high level game logic
 %
@@ -8,36 +8,38 @@
 % 1 deck
 % No splits
 
+play() ->
+  receive
+    {From, TestType} ->
+      Result = play(TestType),
+      From ! {self(), {TestType, Result}};
+    _ ->
+      io:format("dunno what to do here.")
+  end.
+
 play(TestType) ->
   Shoe = shoe:create({decks, 1}),
-  io:format("~p~n", [Shoe]),
   InitialHands = dealer:deal(Shoe),
   Result = play(Shoe, player, InitialHands, TestType),
-  Response = [Result, determine_expected_value(Result)],
-  io:format("Result~w~n", [Response]).
+  [Result, determine_expected_value(Result)].
+
 
 play(Shoe, player, {player, PlayerHand, dealer, DealerHand}, TestType) ->
-  io:format("player's turn~n"),
   PlayerCount = hand:sum(PlayerHand),
 
   if
     PlayerCount == 21 ->
-      io:format("PlayerCount:~p~n", [PlayerCount]),
-      io:format("player wins blackjack~n"),
       {player, PlayerHand, dealer, DealerHand};
     PlayerCount < 21 ->
       actions:decide(Shoe, player, {player, PlayerHand, dealer, DealerHand}, TestType)
   end.
 
 play(Shoe, dealer, {player, PlayerHand, dealer, DealerHand}) ->
-  io:format("dealer's turn~n"),
 
   DealerCount = hand:sum(DealerHand),
 
   if
     DealerCount == 21 ->
-      io:format("DealerCount:~p~n", [DealerCount]),
-      io:format("dealer has blackjack~n"),
       {player, PlayerHand, dealer, DealerHand};
     DealerCount < 21 ->
       actions:decide(Shoe, dealer, {player, PlayerHand, dealer, DealerHand})
