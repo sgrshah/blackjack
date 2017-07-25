@@ -7,7 +7,10 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
 % Public Facing API:
+
 % `{ok, Pid} = simulation:start_link().`
+% We want to use start_link here because if the child process (simulation) dies, then we want to the
+% parent process to die as well.
 start_link() -> gen_server:start_link(?MODULE, [], []).
 
 % `simulation:trigger(Pid, stand).`
@@ -71,8 +74,8 @@ trigger_simulations(_, SimulationCount) when SimulationCount >= 10000 ->
   ok;
 
 trigger_simulations(Directive, SimulationCount) when SimulationCount < 10000 ->
-  Game = spawn(game, play, []),
-  Game ! {self(), Directive},
+  {ok, Pid} = game:start(),
+  game:trigger(Pid, Directive, self()),
   trigger_simulations(Directive, SimulationCount + 1).
 
 generate_results_list() ->
