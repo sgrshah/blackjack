@@ -74,8 +74,8 @@ trigger_simulations(_, SimulationCount) when SimulationCount >= 10000 ->
   ok;
 
 trigger_simulations(Directive, SimulationCount) when SimulationCount < 10000 ->
-  {ok, Pid} = game:start(),
-  game:trigger(Pid, Directive, self()),
+  {ok, Pid} = game_server:start(),
+  game_server:trigger(Pid, Directive, self()),
   trigger_simulations(Directive, SimulationCount + 1).
 
 generate_results_list() ->
