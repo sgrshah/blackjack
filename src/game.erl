@@ -1,5 +1,5 @@
 -module(game).
--export([play/0]).
+-export([play/0, play/3]).
 
 % This module encapsulates all high level game logic
 %
