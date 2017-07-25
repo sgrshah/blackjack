@@ -12,7 +12,7 @@ play() ->
   receive
     {From, TestType} ->
       Result = play(TestType),
-      From ! {self(), {TestType, Result}};
+      simulation:process_outcome(From, Result);
     _ ->
       io:format("dunno what to do here.")
   end.

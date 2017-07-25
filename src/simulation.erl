@@ -1,19 +1,69 @@
 -module(simulation).
--export([simulation/2]).
+-behavior(gen_server).
 
-simulation(ParentProcess, SimulationResults) ->
-  receive
-    {_, {_, GameResult}} when is_list(GameResult) ->
-      NewSimulationResults = update_results_list(SimulationResults, GameResult),
-      ParentProcess ! {self(), NewSimulationResults},
-      simulation(ParentProcess, NewSimulationResults);
-    {From, Message} when is_atom(Message) ->
-      io:format("starting a batch simulation..."),
-      trigger_simulations(Message),
-      NewSimulationResults = generate_results_list(),
-      simulation(From, NewSimulationResults)
-  end.
+% External API
+-export([start_link/0, trigger/2, process_outcome/2, poll/1]).
+% Gen_server callbacks API
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
+% Public Facing API:
+% `{ok, Pid} = simulation:start_link().`
+start_link() -> gen_server:start_link(?MODULE, [], []).
+
+% `simulation:trigger(Pid, stand).`
+% Async cast to specified Pid.
+% Returns ok.
+trigger(Pid, TestType) ->
+  gen_server:cast(Pid, {trigger, TestType}).
+
+% Async cast with incoming outcome from a game.
+% This external API function is called by the game when it is finished.
+process_outcome(Pid, GameOutcome) ->
+  gen_server:cast(Pid, {update_state, GameOutcome}).
+
+% Synchronous call to check for the state of the simulation.
+% Returns the state of the simulation, i.e. the expected value of each upcard/playerhand.
+poll(Pid) ->
+  gen_server:call(Pid, {poll}).
+
+% GenServer callbacks:
+
+% Used to initialize the server's state. In this case we initialize it with an empty orddict to
+% populate with our results.
+init([]) ->
+  State = generate_results_list(),
+  {ok, State}.
+
+% Handle cast will handle requests that are meant to be async. For example, triggering simulation
+% (called by the user client) and updating the state (called by a finished game).
+handle_cast({trigger, TestType}, State) ->
+  % Trigger simulation based on TestType specified.
+  trigger_simulations(TestType),
+  {noreply, State};
+handle_cast({update_state, GameOutcome}, State) ->
+  % Update state based on incoming game outcome.
+  UpdatedState = update_results_list(State, GameOutcome),
+  {noreply, UpdatedState}.
+
+% Handle call will handle requests that are meant to be synchronous. For example, polling for status
+% (called by the user client).
+handle_call({poll}, From, State) ->
+  {reply, State, State}.
+
+% Handle info will manage messages that the cast/call paradigm does not know how to answer.
+handle_info(Info, State) ->
+  io:format("Don't know what to do with ~p~n", [Info]),
+  {noreply, State}.
+
+% I have no idea what terminate does either.
+terminate(Reason, State) ->
+  io:format("shutting down."),
+  ok.
+
+% I have no idea how code_change works.
+code_change(OldVsn, State, Extra) -> {ok, State}.
+
+% Private functions
 trigger_simulations(Directive) ->
   trigger_simulations(Directive, 0).
 
