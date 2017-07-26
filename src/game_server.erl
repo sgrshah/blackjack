@@ -30,21 +30,20 @@ init([]) ->
   {ok, State}.
 
 play(Pid) ->
-  {GameState, Hands} = game:trigger(Pid),
+  {GameState, Hands, ExpectedValue} = game:trigger(Pid),
 
   case GameState of
-    player_win -> Hands;
-    dealer_win -> Hands;
-    push -> Hands;
+    player_win -> [Hands, {expected_value, ExpectedValue}];
+    dealer_win -> [Hands, {expected_value, ExpectedValue}];
+    push -> [Hands, {expected_value, ExpectedValue}];
     _ -> play(Pid)
   end.
 
 handle_cast({play, TestType, From}, State) ->
   {ok, Pid} = game:start_link(),
   Result = play(Pid),
-  Output = [Result, determine_expected_value(Result)],
-  simulation:process_outcome(From, Output),
-  {noreply, Output}.
+  simulation:process_outcome(From, Result),
+  {noreply, Result}.
 
 handle_call(Request, From, State) ->
   {reply, State}.
@@ -58,15 +57,3 @@ terminate(Reason, State) ->
   ok.
 
 code_change(OldVsn, State, Extra) -> {ok, State}.
-
-determine_expected_value({player, PlayerHand, dealer, DealerHand}) ->
-  PlayerCount = hand:sum(PlayerHand),
-  DealerCount = hand:sum(DealerHand),
-
-  if
-    PlayerCount > 21 -> {expected_value, -1};
-    DealerCount > 21 -> {expected_value, 1};
-    PlayerCount > DealerCount -> {expected_value, 1};
-    PlayerCount ==  DealerCount -> {expected_value, 0};
-    PlayerCount <  DealerCount -> {expected_value, -1}
-  end.
