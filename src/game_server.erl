@@ -29,10 +29,19 @@ init([]) ->
   State = [],
   {ok, State}.
 
+play(Pid) ->
+  {GameState, Hands} = game:trigger(Pid),
+
+  case GameState of
+    player_win -> Hands;
+    dealer_win -> Hands;
+    push -> Hands;
+    _ -> play(Pid)
+  end.
+
 handle_cast({play, TestType, From}, State) ->
-  Shoe = shoe:create({decks, 1}),
-  InitialHands = dealer:deal(Shoe),
-  Result = game:play(Shoe, player, InitialHands, TestType),
+  {ok, Pid} = game:start_link(),
+  Result = play(Pid),
   Output = [Result, determine_expected_value(Result)],
   simulation:process_outcome(From, Output),
   {noreply, Output}.
