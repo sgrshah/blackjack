@@ -1,15 +1,6 @@
 -module(shoe).
 -export([create/1, deal/2]).
-
-% This module encapsulates all logic related to the shoe. The shoe is the container for all the
-% cards, and can consist of 1-6 decks.
-
-% Create takes an argument that specifies the number of decks in the shoe.
-% It creates a list of all the card values.
-% Aces are represented as tuples {1,11}.
-% It shuffles the deck into a random order.
-create({decks, 1}) ->
-  Shoe = [
+-define(SHOE, [
     2, 2, 2, 2,
     3, 3, 3, 3,
     4, 4, 4, 4,
@@ -23,8 +14,17 @@ create({decks, 1}) ->
     10, 10, 10, 10, % Qs
     10, 10, 10, 10, % Ks
     {1,11}, {1,11}, {1,11}, {1,11} % As
-  ],
-  shuffle(Shoe).
+  ]).
+
+% This module encapsulates all logic related to the shoe. The shoe is the container for all the
+% cards, and can consist of 1-6 decks.
+
+% Create takes an argument that specifies the number of decks in the shoe.
+% It creates a list of all the card values.
+% Aces are represented as tuples {1,11}.
+% It shuffles the deck into a random order.
+create({decks, 1}) ->
+  shuffle(?SHOE).
 
 % Shuffle uses list comprehension to randomly order a Shoe.
 shuffle(Shoe) ->
