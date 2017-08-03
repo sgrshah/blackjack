@@ -1,7 +1,7 @@
 -module(game).
 -behavior(gen_statem).
 % External API
--export([start_link/0, trigger/1]).
+-export([start_link/1, trigger/1]).
 % gen_statem specific
 -export([init/1, callback_mode/0]).
 % state functions
@@ -16,23 +16,18 @@
          push/3]).
 
 % game state machine should die if game server dies.
-start_link() ->
-    gen_statem:start_link(?MODULE, [], []).
+start_link(TestType) ->
+    gen_statem:start_link(?MODULE, [TestType], []).
 
 % Initialize with a shoe and RANDOM hand if no instructions passed.
-init([]) ->
+init([TestType]) ->
   Shoe = shoe:create({decks, 1}),
   InitialHands = dealer:deal(Shoe),
-  {ok, player_turn, {Shoe, InitialHands}};
-
-% Initialize with a predfined hand with portions of shoe removed.
-init(InitialHands) ->
-  % Remove cards from Shoe
-  {ok, player_turn, [], {}}.
+  {ok, player_turn, {Shoe, InitialHands, TestType}}.
 
 % External API call to trigger state changes
 trigger(Pid) ->
-  gen_statem:call(Pid, {trigger, hit}).
+  gen_statem:call(Pid, {trigger}).
 
 % This specifies that I want separate functions for each state. The other option is a single event
 % handler.
@@ -42,7 +37,7 @@ callback_mode() ->
 % State Functions
 % These functions get called after gen_statem:call depending on the state of the machine.
 
-player_turn({call, From}, {_, TestType}, {Shoe, Hands}) ->
+player_turn({call, From}, _, {Shoe, Hands, TestType}) ->
   {player, PlayerHand, dealer, _} = Hands,
   PlayerHandCount = hand:sum(PlayerHand),
 
@@ -50,30 +45,30 @@ player_turn({call, From}, {_, TestType}, {Shoe, Hands}) ->
     (length(PlayerHand) == 2) and (PlayerHandCount == 21) ->
       {next_state, blackjack, {Shoe, Hands}, [{reply, From, {blackjack, Hands, 0}}]};
     (PlayerHandCount >= 17) and (PlayerHandCount =< 21) ->
-      {next_state, dealer_turn, {Shoe, Hands}, [{reply, From, {dealer_turn, Hands, 0}}]};
+      {next_state, dealer_turn, {Shoe, Hands, TestType}, [{reply, From, {dealer_turn, Hands, 0}}]};
     (PlayerHandCount < 17) ->
       case TestType of
         hit ->
           NewHands = hit(Shoe, player, Hands),
-          {keep_state, {Shoe, NewHands}, [{reply, From, {player_turn, NewHands, 0}}]};
+          {keep_state, {Shoe, NewHands, TestType}, [{reply, From, {player_turn, NewHands, 0}}]};
         double ->
           NewHands = hit(Shoe, player, Hands),
-          {next_state, dealer_turn, {Shoe, NewHands}, [{reply, From, {dealer_turn, NewHands, 0}}]};
+          {next_state, dealer_turn, {Shoe, NewHands, TestType}, [{reply, From, {dealer_turn, NewHands, 0}}]};
         stand ->
-          {next_state, dealer_turn, {Shoe, Hands}, [{reply, From, {dealer_turn, Hands, 0}}]}
+          {next_state, dealer_turn, {Shoe, Hands, TestType}, [{reply, From, {dealer_turn, Hands, 0}}]}
       end;
     (PlayerHandCount > 21) ->
       {next_state, player_bust, {Shoe, Hands}, [{reply, From, {player_bust, Hands, 0}}]}
   end.
 
-dealer_turn({call, From}, {_, TestType}, {Shoe, Hands}) ->
+dealer_turn({call, From}, _, {Shoe, Hands, TestType}) ->
   {player, _, dealer, DealerHand} = Hands,
   DealerCount = hand:sum(DealerHand),
 
   if
     (DealerCount < 17) ->
       NewHands = hit(Shoe, dealer, Hands),
-      {keep_state, {Shoe, NewHands}, [{reply, From, {dealer_turn, NewHands, 0}}]};
+      {keep_state, {Shoe, NewHands, TestType}, [{reply, From, {dealer_turn, NewHands, 0}}]};
     (DealerCount > 21) ->
       {next_state, dealer_bust, {Shoe, Hands}, [{reply, From, {dealer_bust, Hands, 0}}]};
     (DealerCount >= 17) and (DealerCount =< 21) ->
