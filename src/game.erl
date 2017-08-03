@@ -81,21 +81,21 @@ dealer_turn({call, From}, {_, TestType}, {Shoe, Hands}) ->
   end.
 
 blackjack({call, From}, _, {Shoe, Hands}) ->
-  {next_state, player_win, {Shoe, Hands}, [{reply, From, {player_win, Hands, 0}}]}.
+  {next_state, player_win, {Shoe, Hands}, [{reply, From, {player_win, Hands, 1}}]}.
 
 player_bust({call, From}, _, {Shoe, Hands}) ->
-  {next_state, dealer_win, {Shoe, Hands}, [{reply, From, {dealer_win, Hands, 0}}]}.
+  {next_state, dealer_win, {Shoe, Hands}, [{reply, From, {dealer_win, Hands, -1}}]}.
 
 dealer_bust({call, From}, _, {Shoe, Hands}) ->
-  {next_state, player_win, {Shoe, Hands}, [{reply, From, {player_win, Hands, 0}}]}.
+  {next_state, player_win, {Shoe, Hands}, [{reply, From, {player_win, Hands, 1}}]}.
 
 game_evaluation({call, From}, _, {Shoe, {_, PlayerHand, _, DealerHand}}) when PlayerHand > DealerHand ->
   Hands = {player, PlayerHand, dealer, DealerHand},
-  {next_state, player_win, {Shoe, Hands}, [{reply, From, {player_win, Hands, 0}}]};
+  {next_state, player_win, {Shoe, Hands}, [{reply, From, {player_win, Hands, 1}}]};
 
 game_evaluation({call, From}, _, {Shoe, {_, PlayerHand, _, DealerHand}}) when PlayerHand < DealerHand ->
   Hands = {player, PlayerHand, dealer, DealerHand},
-  {next_state, dealer_win, {Shoe, Hands}, [{reply, From, {dealer_win, Hands, 0}}]};
+  {next_state, dealer_win, {Shoe, Hands}, [{reply, From, {dealer_win, Hands, -1}}]};
 
 game_evaluation({call, From}, _, {Shoe, {_, PlayerHand, _, DealerHand}}) when PlayerHand == DealerHand ->
   Hands = {player, PlayerHand, dealer, DealerHand},
