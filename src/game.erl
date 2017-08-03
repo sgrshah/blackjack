@@ -84,17 +84,18 @@ player_bust({call, From}, _, {Shoe, Hands}) ->
 dealer_bust({call, From}, _, {Shoe, Hands}) ->
   {next_state, player_win, {Shoe, Hands}, [{reply, From, {player_win, Hands, 1}}]}.
 
-game_evaluation({call, From}, _, {Shoe, {_, PlayerHand, _, DealerHand}}) when PlayerHand > DealerHand ->
+game_evaluation({call, From}, _, {Shoe, {_, PlayerHand, _, DealerHand}}) ->
+  DealerCount = hand:sum(DealerHand),
+  PlayerCount = hand:sum(PlayerHand),
   Hands = {player, PlayerHand, dealer, DealerHand},
-  {next_state, player_win, {Shoe, Hands}, [{reply, From, {player_win, Hands, 1}}]};
-
-game_evaluation({call, From}, _, {Shoe, {_, PlayerHand, _, DealerHand}}) when PlayerHand < DealerHand ->
-  Hands = {player, PlayerHand, dealer, DealerHand},
-  {next_state, dealer_win, {Shoe, Hands}, [{reply, From, {dealer_win, Hands, -1}}]};
-
-game_evaluation({call, From}, _, {Shoe, {_, PlayerHand, _, DealerHand}}) when PlayerHand == DealerHand ->
-  Hands = {player, PlayerHand, dealer, DealerHand},
-  {next_state, push, {Shoe, Hands}, [{reply, From, {push, Hands, 0}}]}.
+  if
+    PlayerCount > DealerCount ->
+      {next_state, player_win, {Shoe, Hands}, [{reply, From, {player_win, Hands, 1}}]};
+    PlayerCount < DealerCount ->
+      {next_state, dealer_win, {Shoe, Hands}, [{reply, From, {dealer_win, Hands, -1}}]};
+    PlayerCount == DealerCount ->
+      {next_state, push, {Shoe, Hands}, [{reply, From, {push, Hands, 0}}]}
+  end.
 
 player_win({call, From}, _, {Shoe, Hands}) ->
   {keep_state, {Shoe, Hands}, [{reply, From, {player_win, Hands, 1}}]}.
