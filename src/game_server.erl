@@ -2,7 +2,7 @@
 -behavior(gen_server).
 
 % External API
--export([start/0, trigger/3]).
+-export([start_link/0, trigger/3]).
 % Gen_server callbacks API
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
@@ -13,10 +13,12 @@
 % No splits
 
 % External API:
-% `{ok, Pid} = game:start().
-% We want to use start here because if the child (game) dies we don't want the parent (simulation) to die
-% as well.
-start() -> gen_server:start(?MODULE, [], []).
+% `{ok, Pid} = game:start_link().
+% We were previously using start here because if the child (game_server) dies we don't want the
+% parent (simulation) to die as well. However, now that we are implementing supervisors, the
+% supervisor can use the link to restart the game_server.
+start_link() ->
+  gen_server:start_link(?MODULE, [], []).
 
 % `game:play(Pid, TestType).`
 % Async cast to specified Pid.
