@@ -1,7 +1,7 @@
 -module(game).
 -behavior(gen_statem).
 % External API
--export([start_link/1, trigger/1]).
+-export([start_link/2, trigger/1]).
 % gen_statem specific
 -export([init/1, callback_mode/0]).
 % state functions
@@ -16,13 +16,15 @@
          push/3]).
 
 % game state machine should die if game server dies.
-start_link(TestType) ->
-    gen_statem:start_link(?MODULE, [TestType], []).
+start_link(TestType, {UpCard, PlayerHandCount}) ->
+    gen_statem:start_link(?MODULE, [TestType, {UpCard, PlayerHandCount}], []).
 
 % Initialize with a shoe and RANDOM hand if no instructions passed.
-init([TestType]) ->
+init([TestType, {UpCard, PlayerHandCount}]) ->
   Shoe = shoe:create({decks, 1}),
-  InitialHands = dealer:deal(Shoe),
+  N = erlang:max(1, round(rand:uniform() * 10)),
+  CardPossibilities = [2,3,4,5,6,7,8,9,10,10,10,10,{1,11}],
+  InitialHands = {player, [PlayerHandCount], dealer, [lists:nth(N, CardPossibilities), UpCard]},
   {ok, player_turn, {Shoe, InitialHands, TestType}}.
 
 % External API call to trigger state changes

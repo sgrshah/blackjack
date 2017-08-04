@@ -41,7 +41,7 @@ init([]) ->
 % (called by the user client) and updating the state (called by a finished game).
 handle_cast({trigger, TestType}, State) ->
   % Trigger simulation based on TestType specified.
-  trigger_simulations(TestType),
+  trigger_simulations(TestType, orddict:to_list(State)),
   {noreply, State};
 handle_cast({update_state, GameOutcome}, State) ->
   % Update state based on incoming game outcome.
@@ -67,16 +67,23 @@ terminate(Reason, State) ->
 code_change(OldVsn, State, Extra) -> {ok, State}.
 
 % Private functions
-trigger_simulations(Directive) ->
-  trigger_simulations(Directive, 0).
-
-trigger_simulations(_, SimulationCount) when SimulationCount >= 10000 ->
+trigger_simulations(TestType, []) ->
   ok;
 
-trigger_simulations(Directive, SimulationCount) when SimulationCount < 10000 ->
-  {ok, Pid} = game_server:start_link(Directive),
+trigger_simulations(TestType, [{{UpCard, PlayerHandCount}, _}|T]) ->
+  trigger_simulations(TestType, {UpCard, PlayerHandCount}),
+  trigger_simulations(TestType, T);
+
+trigger_simulations(TestType, HandCombination) ->
+  trigger_simulations(TestType, HandCombination, 0).
+
+trigger_simulations(_, _, SimulationCount) when SimulationCount >= 100 ->
+  ok;
+
+trigger_simulations(TestType, HandCombination, SimulationCount) when SimulationCount < 100 ->
+  {ok, Pid} = game_server:start_link(TestType, HandCombination),
   game_server:trigger(Pid, self()),
-  trigger_simulations(Directive, SimulationCount + 1).
+  trigger_simulations(TestType, HandCombination, SimulationCount + 1).
 
 generate_results_list() ->
   generate_results_row([], 17).
@@ -104,7 +111,7 @@ generate_results_row(ResultsList, PlayerHandCount) when (PlayerHandCount =< 17) 
 update_results_list(SimulationResults, GameResults) ->
   %% io:format("Simulation #:~w~n", [GameResults]),
   {player, PlayerHand, dealer, DealerHand} = lists:nth(1, GameResults),
-  PlayerHandCount = hand:sum([lists:nth(1, PlayerHand), lists:nth(2, PlayerHand)]),
+  PlayerHandCount = lists:nth(1, PlayerHand),
   if
     (PlayerHandCount =< 17) and (PlayerHandCount >= 8) ->
       {expected_value, IncomingExpectedValue} = lists:nth(2, GameResults),

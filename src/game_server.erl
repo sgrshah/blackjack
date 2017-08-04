@@ -2,7 +2,7 @@
 -behavior(gen_server).
 
 % External API
--export([start_link/1, trigger/2]).
+-export([start_link/2, trigger/2]).
 % Gen_server callbacks API
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
@@ -17,8 +17,8 @@
 % We were previously using start here because if the child (game_server) dies we don't want the
 % parent (simulation) to die as well. However, now that we are implementing supervisors, the
 % supervisor can use the link to restart the game_server.
-start_link(TestType) ->
-  gen_server:start_link(?MODULE, [TestType], []).
+start_link(TestType, {UpCard, PlayerHandCount}) ->
+  gen_server:start_link(?MODULE, [TestType, {UpCard, PlayerHandCount}], []).
 
 % `game:play(Pid, TestType).`
 % Async cast to specified Pid.
@@ -27,9 +27,8 @@ trigger(Pid, From) ->
   gen_server:cast(Pid, {play, From}).
 
 % GenServer Callbacks:
-init([TestType]) ->
-  State = TestType,
-  {ok, State}.
+init([TestType, {UpCard, PlayerHandCount}]) ->
+  {ok, {TestType, {UpCard, PlayerHandCount}}}.
 
 play(Pid) ->
   {GameState, Hands, ExpectedValue} = game:trigger(Pid),
@@ -41,8 +40,8 @@ play(Pid) ->
     _ -> play(Pid)
   end.
 
-handle_cast({play, From}, TestType) ->
-  {ok, Pid} = game:start_link(TestType),
+handle_cast({play, From}, {TestType, {UpCard, PlayerHandCount}}) ->
+  {ok, Pid} = game:start_link(TestType, {UpCard, PlayerHandCount}),
   Result = play(Pid),
   simulation:process_outcome(From, Result),
   {noreply, Result}.

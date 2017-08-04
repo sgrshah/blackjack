@@ -31,6 +31,9 @@ shuffle(Shoe) ->
   [Card || {_, Card} <- lists:sort([{rand:uniform(), N} || N <- Shoe])].
 
 % The deal function pulls the Nth item from a shoe.
+% Needs to be refactored to just remove the last card in the shoe:
+%%   Card = lists:last(Shoe),
+%%   NewShoe = lists:droplast(Shoe).
 deal(Shoe, CardNum) ->
   deal(Shoe, CardNum, 1).
 
