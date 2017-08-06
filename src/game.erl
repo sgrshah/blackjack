@@ -45,7 +45,7 @@ player_turn({call, From}, _, {Shoe, Hands, TestType}) ->
 
   if
     (length(PlayerHand) == 2) and (PlayerHandCount == 21) ->
-      {next_state, blackjack, {Shoe, Hands}, [{reply, From, {blackjack, Hands, 0}}]};
+      {next_state, blackjack, {Shoe, Hands, TestType}, [{reply, From, {blackjack, Hands, 0}}]};
     (PlayerHandCount >= 17) and (PlayerHandCount =< 21) ->
       {next_state, dealer_turn, {Shoe, Hands, TestType}, [{reply, From, {dealer_turn, Hands, 0}}]};
     (PlayerHandCount < 17) ->
@@ -60,7 +60,7 @@ player_turn({call, From}, _, {Shoe, Hands, TestType}) ->
           {next_state, dealer_turn, {Shoe, Hands, TestType}, [{reply, From, {dealer_turn, Hands, 0}}]}
       end;
     (PlayerHandCount > 21) ->
-      {next_state, player_bust, {Shoe, Hands}, [{reply, From, {player_bust, Hands, 0}}]}
+      {next_state, player_bust, {Shoe, Hands, TestType}, [{reply, From, {player_bust, Hands, 0}}]}
   end.
 
 dealer_turn({call, From}, _, {Shoe, Hands, TestType}) ->
@@ -72,43 +72,53 @@ dealer_turn({call, From}, _, {Shoe, Hands, TestType}) ->
       NewHands = hit(Shoe, dealer, Hands),
       {keep_state, {Shoe, NewHands, TestType}, [{reply, From, {dealer_turn, NewHands, 0}}]};
     (DealerCount > 21) ->
-      {next_state, dealer_bust, {Shoe, Hands}, [{reply, From, {dealer_bust, Hands, 0}}]};
+      {next_state, dealer_bust, {Shoe, Hands, TestType}, [{reply, From, {dealer_bust, Hands, 0}}]};
     (DealerCount >= 17) and (DealerCount =< 21) ->
-      {next_state, game_evaluation, {Shoe, Hands}, [{reply, From, {game_evaluation, Hands, 0}}]}
+      {next_state, game_evaluation, {Shoe, Hands, TestType}, [{reply, From, {game_evaluation, Hands, 0}}]}
   end.
 
-blackjack({call, From}, _, {Shoe, Hands}) ->
-  {next_state, player_win, {Shoe, Hands}, [{reply, From, {player_win, Hands, 1}}]}.
+blackjack({call, From}, _, {Shoe, Hands, TestType}) ->
+  {next_state, player_win, {Shoe, Hands}, [{reply, From, {player_win, Hands, 1 *
+                                                          multiplier(TestType)}}]}.
 
-player_bust({call, From}, _, {Shoe, Hands}) ->
-  {next_state, dealer_win, {Shoe, Hands}, [{reply, From, {dealer_win, Hands, -1}}]}.
+player_bust({call, From}, _, {Shoe, Hands, TestType}) ->
+  {next_state, dealer_win, {Shoe, Hands}, [{reply, From, {dealer_win, Hands, -1 *
+                                                          multiplier(TestType)}}]}.
 
-dealer_bust({call, From}, _, {Shoe, Hands}) ->
-  {next_state, player_win, {Shoe, Hands}, [{reply, From, {player_win, Hands, 1}}]}.
+dealer_bust({call, From}, _, {Shoe, Hands, TestType}) ->
+  {next_state, player_win, {Shoe, Hands}, [{reply, From, {player_win, Hands, 1 *
+                                                          multiplier(TestType)}}]}.
 
-game_evaluation({call, From}, _, {Shoe, {_, PlayerHand, _, DealerHand}}) ->
+game_evaluation({call, From}, _, {Shoe, {_, PlayerHand, _, DealerHand}, TestType}) ->
   DealerCount = hand:sum(DealerHand),
   PlayerCount = hand:sum(PlayerHand),
   Hands = {player, PlayerHand, dealer, DealerHand},
   if
     PlayerCount > DealerCount ->
-      {next_state, player_win, {Shoe, Hands}, [{reply, From, {player_win, Hands, 1}}]};
+      {next_state, player_win, {Shoe, Hands, TestType}, [{reply, From, {player_win, Hands, 1 *
+                                                              multiplier(TestType)}}]};
     PlayerCount < DealerCount ->
-      {next_state, dealer_win, {Shoe, Hands}, [{reply, From, {dealer_win, Hands, -1}}]};
+      {next_state, dealer_win, {Shoe, Hands, TestType}, [{reply, From, {dealer_win, Hands, -1 *
+                                                                        multiplier(TestType)}}]};
     PlayerCount == DealerCount ->
-      {next_state, push, {Shoe, Hands}, [{reply, From, {push, Hands, 0}}]}
+      {next_state, push, {Shoe, Hands, TestType}, [{reply, From, {push, Hands, 0}}]}
   end.
 
-player_win({call, From}, _, {Shoe, Hands}) ->
-  {keep_state, {Shoe, Hands}, [{reply, From, {player_win, Hands, 1}}]}.
+player_win({call, From}, _, {Shoe, Hands, TestType}) ->
+  {keep_state, {Shoe, Hands, TestType}, [{reply, From, {player_win, Hands, 1 * multiplier(TestType)}}]}.
 
-dealer_win({call, From}, _, {Shoe, Hands}) ->
-  {keep_state, {Shoe, Hands}, [{reply, From, {dealer_win, Hands, -1}}]}.
+dealer_win({call, From}, _, {Shoe, Hands, TestType}) ->
+  {keep_state, {Shoe, Hands, TestType}, [{reply, From, {dealer_win, Hands, -1 * multiplier(TestType)}}]}.
 
-push({call, From}, _, {Shoe, Hands}) ->
-  {keep_state, {Shoe, Hands}, [{reply, From, {push, Hands, 0}}]}.
+push({call, From}, _, {Shoe, Hands, TestType}) ->
+  {keep_state, {Shoe, Hands, TestType}, [{reply, From, {push, Hands, 0}}]}.
 
 % Private Methods
+
+multiplier(TestType) when TestType =/= double ->
+  1;
+multiplier(TestType) when TestType =:= double ->
+  2.
 
 hit(Shoe, player, {player, PlayerHand, dealer, DealerHand}) ->
   CardNumInShoe = length(PlayerHand) + length(DealerHand) + 1,
