@@ -34,24 +34,25 @@ poll(Pid) ->
 % Used to initialize the server's state. In this case we initialize it with an empty orddict to
 % populate with our results.
 init([]) ->
-  State = generate_results_list(),
+  {ok, SupPid} = game_supervisor:start_link(),
+  State = {generate_results_list(), SupPid},
   {ok, State}.
 
 % Handle cast will handle requests that are meant to be async. For example, triggering simulation
 % (called by the user client) and updating the state (called by a finished game).
-handle_cast({trigger, TestType}, State) ->
+handle_cast({trigger, TestType}, {ResultsList, SupPid}) ->
   % Trigger simulation based on TestType specified.
-  trigger_simulations(TestType, orddict:to_list(State)),
-  {noreply, State};
-handle_cast({update_state, GameOutcome}, State) ->
+  trigger_simulations(TestType, orddict:to_list(ResultsList), SupPid),
+  {noreply, {ResultsList, SupPid}};
+handle_cast({update_state, GameOutcome}, {ResultsList, SupPid}) ->
   % Update state based on incoming game outcome.
-  UpdatedState = update_results_list(State, GameOutcome),
-  {noreply, UpdatedState}.
+  UpdatedState = update_results_list(ResultsList, GameOutcome),
+  {noreply, {UpdatedState, SupPid}}.
 
 % Handle call will handle requests that are meant to be synchronous. For example, polling for status
 % (called by the user client).
-handle_call({poll}, From, State) ->
-  {reply, State, State}.
+handle_call({poll}, From, {ResultsList, SupPid}) ->
+  {reply, ResultsList, {ResultsList, SupPid}}.
 
 % Handle info will manage messages that the cast/call paradigm does not know how to answer.
 handle_info(Info, State) ->
@@ -67,23 +68,23 @@ terminate(Reason, State) ->
 code_change(OldVsn, State, Extra) -> {ok, State}.
 
 % Private functions
-trigger_simulations(TestType, []) ->
+trigger_simulations(TestType, [], SupPid) ->
   ok;
 
-trigger_simulations(TestType, [{{UpCard, PlayerHandCount}, _}|T]) ->
-  trigger_simulations(TestType, {UpCard, PlayerHandCount}),
-  trigger_simulations(TestType, T);
+trigger_simulations(TestType, [{{UpCard, PlayerHandCount}, _}|T], SupPid) ->
+  trigger_simulations(TestType, {UpCard, PlayerHandCount}, SupPid),
+  trigger_simulations(TestType, T, SupPid);
 
-trigger_simulations(TestType, HandCombination) ->
-  trigger_simulations(TestType, HandCombination, 0).
+trigger_simulations(TestType, HandCombination, SupPid) ->
+  trigger_simulations(TestType, HandCombination, 0, SupPid).
 
-trigger_simulations(_, _, SimulationCount) when SimulationCount >= 100 ->
+trigger_simulations(_, _, SimulationCount, SupPid) when SimulationCount >= 500 ->
   ok;
 
-trigger_simulations(TestType, HandCombination, SimulationCount) when SimulationCount < 100 ->
-  {ok, Pid} = game_server:start_link(TestType, HandCombination),
-  game_server:trigger(Pid, self()),
-  trigger_simulations(TestType, HandCombination, SimulationCount + 1).
+trigger_simulations(TestType, HandCombination, SimulationCount, SupPid) when SimulationCount < 500 ->
+  supervisor:start_child(SupPid, [TestType, HandCombination, self()]),
+  %% game_server:trigger(Pid, self()),
+  trigger_simulations(TestType, HandCombination, SimulationCount + 1, SupPid).
 
 generate_results_list() ->
   generate_results_row([], 17).
